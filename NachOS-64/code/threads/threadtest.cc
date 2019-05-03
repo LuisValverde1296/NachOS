@@ -90,7 +90,7 @@ ThreadTest()
 
     DEBUG('t', "Entering SimpleTest");
 
-/*
+
     dp = new DinningPh();
 
     for ( long k = 0; k < 5; k++ ) {
@@ -99,7 +99,7 @@ ThreadTest()
     }
 
     return;
-*/
+
     for ( int k=1; k<=5; k++) {
       char* threadname = new char[100];
       sprintf(threadname, "Hilo %d", k);

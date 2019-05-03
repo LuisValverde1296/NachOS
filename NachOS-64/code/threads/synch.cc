@@ -123,12 +123,13 @@ Semaphore::Destroy()
 // Note -- without a correct implementation of Condition::Wait(), 
 // the test case in the network assignment won't work!
 Lock::Lock(const char* debugName) {
-	char* aux; //variable auxiliar para darle un numbre al mutex acorde al nombre del Lock
 	name = (char*)debugName;
-	aux = name;
+	char* aux = new char[50];
+	strcpy(aux, name);
 	strcat(aux, " mutex");
 	mutex = new Semaphore(aux,1);
 	lockHolder = NULL;
+	delete aux;
 }
 
 
