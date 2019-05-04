@@ -16,10 +16,10 @@
 #include "dinningph.h"
 #include "santa.h"
 
-//DinningPh * dp;
+DinningPh * dp;
 Santa* st;
 
-/*void Philo( void * p ) {
+void Philo( void * p ) {
 
     int eats, thinks;
     long who = (long) p;
@@ -44,7 +44,7 @@ Santa* st;
         sleep( thinks );
     }
 
-}*/
+}
 
 void Call_Santa( void* p){
     int rest, works, taller;
