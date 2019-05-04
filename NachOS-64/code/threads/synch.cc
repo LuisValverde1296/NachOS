@@ -139,20 +139,16 @@ Lock::~Lock() {
 
 
 void Lock::Acquire() {
-	mutex->P(); //Stop
 	lockHolder = currentThread; //El hilo al que retiene el lock es aquel que lo llama.
+	mutex->P(); //Stop
 }
 
 
 void Lock::Release() {
 	
-	if(isHeldByCurrentThread()){ //Se asegura de que al hilo al que intenta hacer release, es el mismo que tiene retenido.
-		lockHolder = NULL; //Dado que ya no va a retener ningún hilo, se pone en NULL.
-		mutex->V(); //Signal
-	} else{
-		perror("Error en el Release del Lock: ");
-		exit(-1);
-	}
+	ASSERT(isHeldByCurrentThread()); //Se asegura de que al hilo al que intenta hacer release, es el mismo que tiene retenido.
+	lockHolder = NULL; //Dado que ya no va a retener ningún hilo, se pone en NULL.
+	mutex->V(); //Signal
 }
 
 
@@ -175,30 +171,22 @@ Condition::~Condition() {
 
 void Condition::Wait( Lock * conditionLock ) {
 	Semaphore* mutex; //semaforo auxiliar para agregar semaforos al queue.
-	if(conditionLock->isHeldByCurrentThread()){
-		mutex = new Semaphore("Conditional mutex", 0);
-		waitQueue->Append(mutex);
-		conditionLock->Release();
-		mutex->P();
-		conditionLock->Acquire();
-		delete mutex; //dado que la lista utiliza un constructor de copias en Append, es posible evitar aquí mismo las fugas de memoria.
-	} else {
-		perror("Error en Wait de Condition: ");
-		exit(-1);
-	}
+	ASSERT(conditionLock->isHeldByCurrentThread());
+	mutex = new Semaphore("Conditional mutex", 0);
+	waitQueue->Append(mutex);
+	conditionLock->Release();
+	mutex->P();
+	conditionLock->Acquire();
+	delete mutex; //dado que la lista utiliza un constructor de copias en Append, es posible evitar aquí mismo las fugas de memoria.
 }
 
 
 void Condition::Signal( Lock * conditionLock ) {
 	Semaphore* mutex; //un simple puntero para obtener lo semaforos de la cola.
-	if(conditionLock->isHeldByCurrentThread()){
-		if(!waitQueue->IsEmpty()){
-			mutex = waitQueue->Remove();
-			mutex->V();
-		}
-	} else {
-		perror("Error en Signal de Condition: ");
-		exit(-1);
+	ASSERT(conditionLock->isHeldByCurrentThread());
+	if(!waitQueue->IsEmpty()){
+		mutex = waitQueue->Remove();
+		mutex->V();
 	}
 }
 
