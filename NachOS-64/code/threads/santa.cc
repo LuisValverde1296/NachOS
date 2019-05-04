@@ -27,37 +27,37 @@ void Santa::inicializar(){
 }
 
 
-int Santa::slave(int goblin){ //intenta mandar a trabajar al duende específico.
+int Santa::slave(int goblin){ //manda a trabajar al duende específico.
 	//printf("%d hizo Acquire en slave\n", goblin);
-	int taller_actual = tryToWork(goblin);
-	if(current_status[goblin] != WORKING){
-		if(goblin == 3){
+	int taller_actual = tryToWork(goblin); //intenta mandar al duende a trabajar.
+	if(current_status[goblin] != WORKING){ //si no logró ponerlo a trabajar
+		if(goblin == 3){ //y es miedoso.
 			dp->Acquire();
-			miedoso->Wait(dp);
+			miedoso->Wait(dp); //espera a que haya alguien con quien trabajar.
 			dp->Release();
-			taller_actual = tryToWork(goblin);
+			taller_actual = tryToWork(goblin); //lo manda a trabajar cuando hay alguien.
 		}
-		else{
+		else{ //si es alguno de los otros
 			dp->Acquire();
-			taller_no_disponible->Wait(dp);
+			taller_no_disponible->Wait(dp); //significa que no hay talleres disponibles.
 			dp->Release();
-			taller_actual = tryToWork(goblin);
+			taller_actual = tryToWork(goblin); //lo manda a trabajar cuando hay taller.
 		}
 	}
-	return taller_actual;
+	return taller_actual; //retorna el taller en el que se encuentra el duende.
 }
 
-void Santa::procrastinate(int goblin, int taller_actual){	
+void Santa::procrastinate(int goblin, int taller_actual){ //intenta sacar a un duende del taller.
 	leaveWork(goblin, taller_actual);
-	if(current_status[goblin] != PROCRASTINATING){
+	if(current_status[goblin] != PROCRASTINATING){ //si no logró sacarlo
 		dp->Acquire();
-		miedoso->Wait(dp);
+		miedoso->Wait(dp); //es porque está con miedoso.
 		dp->Release();
-		leaveWork(goblin, taller_actual);
+		leaveWork(goblin, taller_actual); //intenta de nuevo sacarlo.
 	}
 }
 
-int Santa::tryToWork(int goblin){
+int Santa::tryToWork(int goblin){ //esta es realmente la zona crítica.
 	dp->Acquire();
 	int taller_actual = -1;
 	switch(goblin){
@@ -73,7 +73,7 @@ int Santa::tryToWork(int goblin){
 				taller_actual = 1;
 				miedoso->Signal(dp);
 			} else{
-				//taller_actual = -1;
+				//Tiene que esperar taller disponible.
 			}
 			break;
 		case 2: //Gruñon
@@ -86,7 +86,7 @@ int Santa::tryToWork(int goblin){
 				current_status[goblin] = WORKING;
 				taller_actual = 1;
 			} else{
-				//taller_actual = -1;
+				//Tiene que esperar taller disponible.
 			}
 			break;
 		case 3: //Miedoso
@@ -99,7 +99,7 @@ int Santa::tryToWork(int goblin){
 				current_status[goblin] = WORKING;
 				taller_actual = 1;
 			} else {
-				//taller_actual = -1;
+				//Tiene que esperar a alguien con quien trabajar.
 			}
 			break;
 		default:
