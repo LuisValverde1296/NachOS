@@ -1,3 +1,4 @@
+
 // synch.h 
 //	Data structures for synchronizing threads.
 //
@@ -139,4 +140,3 @@ class Condition {
     List<Semaphore *> *waitQueue;
 };
 #endif // SYNCH_H
-

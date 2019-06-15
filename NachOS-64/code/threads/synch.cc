@@ -196,4 +196,3 @@ void Condition::Broadcast( Lock * conditionLock ) {
         Signal( conditionLock );
     }
 }
-

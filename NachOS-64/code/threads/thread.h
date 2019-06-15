@@ -42,6 +42,7 @@
 
 #ifdef USER_PROGRAM
 #include "machine.h"
+#include "nachostabla.h"
 #include "addrspace.h"
 #endif
 
@@ -118,10 +119,10 @@ class Thread {
 // while executing kernel code.
 
     int userRegisters[NumTotalRegs];	// user-level CPU register state
-
   public:
     void SaveUserState();		// save user-level register state
     void RestoreUserState();		// restore user-level register state
+    NachosOpenFilesTable* nachosTabla;
 
     AddrSpace *space;			// User code this thread is running.
 #endif

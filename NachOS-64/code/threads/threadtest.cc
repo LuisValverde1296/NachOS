@@ -14,10 +14,8 @@
 #include "copyright.h"
 #include "system.h"
 #include "dinningph.h"
-#include "santa.h"
 
 DinningPh * dp;
-Santa* st;
 
 void Philo( void * p ) {
 
@@ -44,45 +42,6 @@ void Philo( void * p ) {
         sleep( thinks );
     }
 
-}
-
-void Call_Santa( void* p){
-    int rest, works, taller;
-    long goblin = (long)p;
-    char* name = new char[25];
-    currentThread->Yield();
-
-    for (int i = 0; i< 3; ++i){
-        switch(goblin){
-            case 0:
-                strcpy(name, "Tom");
-                break;
-            case 1:
-                strcpy(name, "Jerry");
-                break;
-            case 2:
-                strcpy(name, "Gruñon");
-                break;
-            case 3:
-                strcpy(name, "Miedoso");
-                break;
-            default:
-                break;
-        }
-        printf("***** %s intenta trabajar *****\n", name);
-        taller = st->slave( goblin );
-        st->print();
-        works = Random() % 6;
-
-        currentThread->Yield();
-        sleep( works );
-
-        st->procrastinate( goblin, taller);
-
-        rest = Random() % 6;
-        currentThread->Yield();
-        sleep( rest );
-    }
 }
 
 
@@ -131,14 +90,8 @@ ThreadTest()
 
     DEBUG('t', "Entering SimpleTest");
 
-    st = new Santa();
-    for(int k = 0; k < 4; ++k){
-        Ph = new Thread("st");
-        Ph->Fork( Call_Santa, (void*) k );
-    }
-
-    return;
-    /*dp = new DinningPh();
+/*
+    dp = new DinningPh();
 
     for ( long k = 0; k < 5; k++ ) {
         Ph = new Thread( "dp" );
@@ -146,7 +99,7 @@ ThreadTest()
     }
 
     return;
-
+*/
     for ( int k=1; k<=5; k++) {
       char* threadname = new char[100];
       sprintf(threadname, "Hilo %d", k);
@@ -154,6 +107,6 @@ ThreadTest()
       newThread->Fork (SimpleThread, (void*)threadname);
     }
     
-    SimpleThread( (void*)"Hilo 0");*/
+    SimpleThread( (void*)"Hilo 0");
 }
 
