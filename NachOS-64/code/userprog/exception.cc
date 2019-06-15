@@ -76,6 +76,18 @@ void Nachos_Halt() {                    // System call 0
 
 }       // Nachos_Halt
 
+void Nachos_Exit(){
+
+}
+
+void Nachos_Exec(){
+   
+}
+
+void Nachos_Join(){
+   
+}
+
 void Nachos_Create() {
    int register_4 = machine->ReadRegister(4);
    char* buffer = new char[SIZE];
@@ -133,6 +145,47 @@ void Nachos_Open() {                    // System call 5
    returnFromSystemCall();		// Update the PC registers
 }       // Nachos_Open
 
+void Nachos_Read(){
+   char* buffer = NULL;
+   int size = machine->ReadRegister(5);
+
+   buffer = new char[size];
+   int register_4 = machine->ReadRegister(5);
+   int actual = -1;
+   int result = -1;
+   int unixHandle = -1;
+   OpenFileId id = machine->ReadRegister(6);
+
+   Console->P();
+   switch(id){
+      case  ConsoleInput:	// User can read from standard input
+			result = read(id, buffer, size);
+			stats->numConsoleCharsRead++;
+			machine->WriteRegister(2, result);
+			break;
+		case  ConsoleOutput:
+			machine->WriteRegister(2, result);
+			printf( "Error: user can not read from output\n" );
+         
+		break;
+		case ConsoleError:
+			printf( "Error: user can not read from console error\n" );
+			break;
+		default:
+         if(currentThread->nachosTabla->isOpened(id)){
+            unixHandle = currentThread->nachosTabla->getUnixHandle(id);
+            result = read(unixHandle, buffer, size);
+            ++stats->numDiskReads;
+         }
+         machine->WriteRegister(2, result);
+   }
+   Console->V();
+
+	delete buffer;
+
+	returnFromSystemCall();
+}
+
 void Nachos_Write() {                   // System call 7
 
 /* System call definition described to user
@@ -144,7 +197,7 @@ void Nachos_Write() {                   // System call 7
 */
 
    char * buffer = NULL;
-   int size = machine->ReadRegister( 5 );	// Read size to write
+   int size = machine->ReadRegister(5);	// Read size to write
 
    buffer = new char[size]; 
    int register_4 = machine->ReadRegister(4); //Tracking of the 4th register's content
@@ -204,9 +257,29 @@ void Nachos_Close() {
    returnFromSystemCall();
 }
 
+void Nachos_Fork() {
+
+}
+
 void Nachos_Yield() {
 	currentThread->Yield();
 	returnFromSystemCall();
+}
+
+void Nachos_SemCreate() {
+
+}
+
+void Nachos_SemDestroy() {
+
+}
+
+void Nachos_SemSignal() {
+
+}
+
+void Nachos_SemWait() {
+
 }
 
 void ExceptionHandler(ExceptionType which)
@@ -220,11 +293,23 @@ void ExceptionHandler(ExceptionType which)
              case SC_Halt:
                 Nachos_Halt();             // System call # 0
                 break;
+             case SC_Exit:
+                Nachos_Exit();             // System call # 1
+                break;
+             case SC_Exec:
+                Nachos_Exec();             // System call # 2
+                break;
+             case SC_Join:
+                Nachos_Join();             // System call # 3
+                break;
              case SC_Create:
                 Nachos_Create();           // Systen call # 4
                 break;
              case SC_Open:
                 Nachos_Open();             // System call # 5
+                break;
+             case SC_Read:
+                Nachos_Read();             // System call # 6
                 break;
              case SC_Write:
                 Nachos_Write();             // System call # 7
@@ -232,8 +317,23 @@ void ExceptionHandler(ExceptionType which)
              case SC_Close:
                 Nachos_Close();             // System call # 8
                 break;
+             case SC_Fork:
+                Nachos_Fork();              // System call # 9
+                break;
              case SC_Yield:
                 Nachos_Yield();             // System call # 10
+                break;
+             case SC_SemCreate:
+                Nachos_SemCreate();         // System call # 11
+                break;
+             case SC_SemDestroy:
+                Nachos_SemDestroy();        // System call # 12
+                break;
+             case SC_SemSignal:
+                Nachos_SemSignal();         // System call # 13
+                break;
+             case SC_SemWait:
+                Nachos_SemWait();           // System call # 14
                 break;
              default:
                 printf("Unexpected syscall exception %d\n", type );
