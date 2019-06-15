@@ -22,14 +22,15 @@
 // of liability and disclaimer of warranty provisions.
 
 #include "copyright.h"
-#include "system.h"
-#include "syscall.h"
 #include "nachostabla.h"
+#include "syscall.h"
 #include "synch.h"
+#include "system.h"
 
-#include <sys/types.h>
-#include <sys/stat.h>
 #include <fcntl.h>
+#include <sys/stat.h>
+#include <sys/types.h>
+#include <unistd.h>
 
 //----------------------------------------------------------------------
 // ExceptionHandler
@@ -54,6 +55,8 @@
 //	are in machine.h.
 //----------------------------------------------------------------------
 
+Semaphore* Console = new Semaphore("Console", 1);
+
 void returnFromSystemCall() {
 
     int pc, npc;
@@ -68,10 +71,31 @@ void returnFromSystemCall() {
 
 void Nachos_Halt() {                    // System call 0
 
-        DEBUG('a', "Shutdown, initiated by user program.\n");
-        interrupt->Halt();
+   DEBUG('a', "Shutdown, initiated by user program.\n");
+   interrupt->Halt();
 
 }       // Nachos_Halt
+
+void Nachos_Create() {
+   int register_4 = machine->ReadRegister(4);
+   char* buffer = new char[SIZE];
+   int actual = -1;
+   int index = 0;
+   int result = -1;
+
+   while( actual != 0 ){
+      machine->ReadMem(register_4, 1, &actual);
+      buffer[index] = (char) actual;
+      ++register_4;
+      ++index;
+   }
+   result = creat(buffer, 0766);
+   if(result != -1){
+      result = close(result);
+      ASSERT(result != -1);
+   }
+   returnFromSystemCall();
+}
 
 void Nachos_Open() {                    // System call 5
 /* System call definition described to user
@@ -85,58 +109,58 @@ void Nachos_Open() {                    // System call 5
 	// Verify for errors
 
     
-    int register_4 = machine->ReadRegister(4); // Keeps the tracking of the content of the 4th register.
-    int actual = -1; //The char I'm currently at.
-    int index = 0; //The index is used to advance over the register's content.
-    char *path = new char[SIZE]; //Saves the path of the file
-    int result = -1; // Keeps the result returned by the table
+   int register_4 = machine->ReadRegister(4); // Keeps the tracking of the content of the 4th register.
+   int actual = -1; //The char I'm currently at.
+   int index = 0; //The index is used to advance over the register's content.
+   char *path = new char[SIZE]; //Saves the path of the file
+   int result = -1; // Keeps the result returned by the table
 
-    while (0 != actual) { //Reads the filename, EOF = 0.
-        machine->ReadMem(register_4, 1, &actual);
-        path[index] = (char) actual;
-        register_4++;
-        index++;
-    }
+   while (0 != actual) { //Reads the filename, EOF = 0.
+      machine->ReadMem(register_4, 1, &actual);
+      path[index] = (char) actual;
+      register_4++;
+      index++;
+   }
 
-    int ID = open(path, O_RDWR); //Linux open
-    // Verify for errors
+   int ID = open(path, O_RDWR); //Linux open
+   // Verify for errors
 
-    ASSERT(ID != -1); // test to see if the file was open, if not: breaks the program.
-    result = currentThread->nachosTabla->Open(ID);
- 
-    ++stats->numDiskReads; //Stats up to date.
-    returnFromSystemCall();		// Update the PC registers
-
+   ASSERT(ID != -1); // test to see if the file was open, if not: breaks the program.
+   result = currentThread->nachosTabla->Open(ID);
+   machine->WriteRegister(2, result);
+   ++stats->numDiskReads; //Stats up to date.
+   delete path;
+   returnFromSystemCall();		// Update the PC registers
 }       // Nachos_Open
 
 void Nachos_Write() {                   // System call 7
 
 /* System call definition described to user
-        void Write(
+      void Write(
 		char *buffer,	// Register 4
 		int size,	// Register 5
-		 OpenFileId id	// Register 6
+		OpenFileId id	// Register 6
 	);
 */
 
-         char * buffer = NULL;
-         int size = machine->ReadRegister( 5 );	// Read size to write
-         
-         buffer = new char[size];
-         int register_4 = machine->ReadRegister(4); //Tracking of the 4th register's content
-         int actual = -1; //Actual character reading.
-         result = -1; //return value.
+   char * buffer = NULL;
+   int size = machine->ReadRegister( 5 );	// Read size to write
 
-         for(int i = 0; i < size; ++i){
-            machine->ReadMem(register_4, 1, &actual);
-            buffer[i] = (char)actual;
-            ++register_4;
-         }
-         // buffer = Read data from address given by user;
-         OpenFileId id = machine->ReadRegister( 6 );	// Read file descriptor
+   buffer = new char[size]; 
+   int register_4 = machine->ReadRegister(4); //Tracking of the 4th register's content
+   int actual = -1; //Actual character reading.
+   int result = -1; //return value.
+
+   for(int i = 0; i < size; ++i){
+      machine->ReadMem(register_4, 1, &actual);
+      buffer[i] = (char)actual;
+      ++register_4;
+   }
+   // buffer = Read data from address given by user;
+   OpenFileId id = machine->ReadRegister( 6 );	// Read file descriptor
 
 	// Need a semaphore to synchronize access to console
-	// Console->P();
+	Console->P();
 	switch (id) {
 		case  ConsoleInput:	// User could not write to standard input
 			machine->WriteRegister( 2, result );
@@ -144,7 +168,7 @@ void Nachos_Write() {                   // System call 7
 		case  ConsoleOutput:
 			buffer[ size ] = 0;
 			printf( "%s", buffer );
-		break;
+		   break;
 		case ConsoleError:	// This trick permits to write integers to console
 			printf( "%d\n", machine->ReadRegister( 4 ) );
 			break;
@@ -153,16 +177,37 @@ void Nachos_Write() {                   // System call 7
 			// Get the unix handle from our table for open files
 			// Do the write to the already opened Unix file
 			// Return the number of chars written to user, via r2
+         if(currentThread->nachosTabla->isOpened(id)){
+            int unixHandle = currentThread->nachosTabla->getUnixHandle(id);
+            result = write(unixHandle, (void*)buffer, size); //unix write(int fd, const void *buf, size_t count);
+            ++stats->numDiskWrites;
+         }
+         machine->WriteRegister( 2, result );
 			break;
 
 	}
+   delete buffer;
 	// Update simulation stats, see details in Statistics class in machine/stats.cc
-	// Console->V();
-
-        returnFromSystemCall();		// Update the PC registers
+   Console->V();
+   returnFromSystemCall();		// Update the PC registers
 
 }       // Nachos_Write
 
+void Nachos_Close() {
+	int register_4 = machine->ReadRegister(4);
+   int result = -1;
+   if(currentThread->nachosTabla->isOpened(register_4)){
+      result = close(currentThread->nachosTabla->getUnixHandle(register_4));
+      ASSERT(result != -1);
+      currentThread->nachosTabla->Close(register_4);
+   }
+   returnFromSystemCall();
+}
+
+void Nachos_Yield() {
+	currentThread->Yield();
+	returnFromSystemCall();
+}
 
 void ExceptionHandler(ExceptionType which)
 {
@@ -175,11 +220,20 @@ void ExceptionHandler(ExceptionType which)
              case SC_Halt:
                 Nachos_Halt();             // System call # 0
                 break;
+             case SC_Create:
+                Nachos_Create();           // Systen call # 4
+                break;
              case SC_Open:
                 Nachos_Open();             // System call # 5
                 break;
              case SC_Write:
                 Nachos_Write();             // System call # 7
+                break;
+             case SC_Close:
+                Nachos_Close();             // System call # 8
+                break;
+             case SC_Yield:
+                Nachos_Yield();             // System call # 10
                 break;
              default:
                 printf("Unexpected syscall exception %d\n", type );
