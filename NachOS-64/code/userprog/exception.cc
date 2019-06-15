@@ -119,17 +119,27 @@ void Nachos_Write() {                   // System call 7
 	);
 */
 
-        char * buffer = NULL;
-        int size = machine->ReadRegister( 5 );	// Read size to write
+         char * buffer = NULL;
+         int size = machine->ReadRegister( 5 );	// Read size to write
+         
+         buffer = new char[size];
+         int register_4 = machine->ReadRegister(4); //Tracking of the 4th register's content
+         int actual = -1; //Actual character reading.
+         result = -1; //return value.
 
-        // buffer = Read data from address given by user;
-        OpenFileId id = machine->ReadRegister( 6 );	// Read file descriptor
+         for(int i = 0; i < size; ++i){
+            machine->ReadMem(register_4, 1, &actual);
+            buffer[i] = (char)actual;
+            ++register_4;
+         }
+         // buffer = Read data from address given by user;
+         OpenFileId id = machine->ReadRegister( 6 );	// Read file descriptor
 
 	// Need a semaphore to synchronize access to console
 	// Console->P();
 	switch (id) {
 		case  ConsoleInput:	// User could not write to standard input
-			machine->WriteRegister( 2, -1 );
+			machine->WriteRegister( 2, result );
 			break;
 		case  ConsoleOutput:
 			buffer[ size ] = 0;
