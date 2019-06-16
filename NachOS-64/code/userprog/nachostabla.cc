@@ -61,7 +61,7 @@ void NachosOpenFilesTable::Print()               // Print contents
     printf("Table Pos    UnixHandle    IsOpen");
     for(int i = 0; i < SIZE;++i){
         if(openFilesMap->Test(i)){
-            printf("%-12d : %-14d : %d",i, this->getUnixHandle(i), this->openFilesMap->Test(i));
+            printf("%-12d : %-14d : %d",i, getUnixHandle(i), openFilesMap->Test(i));
         }
     }
 }

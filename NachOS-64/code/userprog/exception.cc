@@ -156,6 +156,7 @@ void Nachos_Read(){
    int unixHandle = -1;
    OpenFileId id = machine->ReadRegister(6);
 
+   bool error = false;
    Console->P();
    switch(id){
       case  ConsoleInput:	// User can read from standard input
@@ -166,10 +167,11 @@ void Nachos_Read(){
 		case  ConsoleOutput:
 			machine->WriteRegister(2, result);
 			printf( "Error: user can not read from output\n" );
-         
+         error = true;
 		break;
 		case ConsoleError:
 			printf( "Error: user can not read from console error\n" );
+         error = true;
 			break;
 		default:
          if(currentThread->nachosTabla->isOpened(id)){
@@ -180,6 +182,12 @@ void Nachos_Read(){
          machine->WriteRegister(2, result);
    }
    Console->V();
+
+   if(!error){ //if there wasn't a reading error
+      actual = (int)buffer[0];
+      machine->WriteMem(register_4, 1, actual);
+      ++register_4;
+   }
 
 	delete buffer;
 
@@ -267,19 +275,52 @@ void Nachos_Yield() {
 }
 
 void Nachos_SemCreate() {
+   int register_4 = machine->ReadRegister(4);
+   int id = -1;
 
+	char* buffer = new char[SIZE];
+   sprintf(buffer, "Sem %d", currentThread->nachosSemTabla->findAvailable());
+	if((id = currentThread->nachosSemTabla->CreateSem((long)new Semaphore(buffer, register_4))) == -1){
+      printf("Unable to create a new Semaphore\n");
+   }
+	machine->WriteRegister(2, id);
+	returnFromSystemCall();
 }
 
 void Nachos_SemDestroy() {
-
+   int register_4 = machine->ReadRegister(4);
+   int result = -1;
+	if (currentThread->nachosSemTabla->exists(register_4)) {
+		result = currentThread->nachosSemTabla->DestroySem(register_4);
+	}
+	machine->WriteRegister(2, result);
+	returnFromSystemCall();
 }
 
 void Nachos_SemSignal() {
-
+   int register_4 = machine->ReadRegister(4);
+   int result = -1;
+   Semaphore* tmp;
+	if (currentThread->nachosSemTabla->exists(register_4)) {
+		tmp = (Semaphore*) currentThread->nachosSemTabla->getSem(register_4);
+		tmp->V();
+		result = 0;
+	}
+   machine->WriteRegister(2, result);
+	returnFromSystemCall();
 }
 
 void Nachos_SemWait() {
-
+   int register_4 = machine->ReadRegister(4);
+   int result = -1;
+   Semaphore* tmp;
+	if (currentThread->nachosSemTabla->exists(register_4)) {
+		tmp = (Semaphore*) currentThread->nachosSemTabla->getSem(register_4);
+		tmp->P();
+		result = 0;
+	} 
+   machine->WriteRegister(2, result);
+	returnFromSystemCall();
 }
 
 void ExceptionHandler(ExceptionType which)
