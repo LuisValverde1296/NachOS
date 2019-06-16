@@ -23,6 +23,7 @@
 
 #include "copyright.h"
 #include "nachostabla.h"
+#include "nachossemtabla.h"
 #include "syscall.h"
 #include "synch.h"
 #include "system.h"
