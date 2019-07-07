@@ -123,7 +123,20 @@ void Nachos_Exec(){
 }
 
 void Nachos_Join(){
-   
+   int register_4 = machine->ReadRegister(4);
+   int id = register_4;
+   if(execJoinSemMap->Test(id)){
+      joinable[id] = true;
+      int semaphoreId = semJoin->CreateSem(0);
+      semIds[id] = semaphoreId;
+      Semaphore* tmp = (Semaphore*) semJoin->getSem(semaphoreId);
+      tmp->P();
+      semJoin->DestroySem(semaphoreId);
+      joinable[id] = false;
+      execJoinSemMap->Clear(id);
+   } else{
+      ASSERT(false);
+   }
 }
 
 void Nachos_Create() {
@@ -303,8 +316,32 @@ void Nachos_Close() {
    returnFromSystemCall();
 }
 
-void Nachos_Fork() {
+void Nachos_Child_Fork(void* p){
+   AddrSpace* space;
+   
+   space = currentThread->space;
+   space->InitRegisters();
+   space->RestoreState();
 
+   machine->WriteRegister(RetAddrReg,4);
+   machine->WriteRegister(PCReg, (long)p);
+   machine->WriteRegister(NextPCReg, (long)p + 4);
+
+   machine->Run(); //Run the userprog
+   ASSERT(false);
+}
+
+void Nachos_Fork() {
+   Thread *t1 = new Thread("Child Fork");
+// Given the fact that the child and the father threads must share
+// the same space, we're going to give to this new Thread the same
+// space as the father using a copy costructor.
+   t1->space = new AddrSpace(currentThread->space);
+
+// The parameters for the new Thread are given in the register 4
+   t1->Fork(Nachos_Child_Fork, (void*)machine->ReadRegister(4));
+
+   returnFromSystemCall();
 }
 
 void Nachos_Yield() {
