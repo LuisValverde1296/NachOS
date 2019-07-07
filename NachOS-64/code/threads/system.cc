@@ -34,8 +34,13 @@ SynchDisk   *synchDisk;
 
 #ifdef USER_PROGRAM	// requires either FILESYS or FILESYS_STUB
 Machine *machine;	// user program memory and registers
+BitMap *memoryPagesMap;
+BitMap *execJoinSemMap;
 NachosOpenFilesTable* nachosTabla;
 NachosSemTable* nachosSemTabla;
+NachosSemTable* semJoin;
+bool joinable[NUM_EXEC];
+int semIds[NUM_EXEC];
 #endif
 
 #ifdef NETWORK

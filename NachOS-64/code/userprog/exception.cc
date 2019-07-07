@@ -78,11 +78,48 @@ void Nachos_Halt() {                    // System call 0
 }       // Nachos_Halt
 
 void Nachos_Exit(){
+   if(joinable[currentThread->id]){
+      int semid = semIds[currentThread->id];
+      Semaphore* tmp = (Semaphore*)semJoin->getSem(semid);
+      tmp->V();
+   }
+   currentThread->Finish();
+   returnFromSystemCall();
+}
 
+void Nachos_Execute(void* filePath){
+   currentThread->space = new AddrSpace((OpenFile*)filePath);
+
+   currentThread->space->InitRegisters();
+   currentThread->space->RestoreState();
+
+   machine->WriteRegister(RetAddrReg, 4);
+
+   machine->Run();
+   ASSERT(false); //Si no salta al codigo del usuario hace un ASSERT
 }
 
 void Nachos_Exec(){
-   
+   ASSERT(execJoinSemMap->NumClear() > 0);
+
+   int register_4 = machine->ReadRegister(4);
+   int actual = -1;
+   int index = 0;
+   char* buffer = new char[SIZE];
+
+   while(actual != 0){
+      machine->ReadMem(register_4, 1, &actual);
+      buffer[index] = (char) actual;
+      ++register_4;
+      ++index;
+   }
+   Thread *t1 = new Thread("Child");
+   int id = execJoinSemMap->Find();
+   t1->id = id;
+   t1->Fork(Nachos_Execute, (void*)fileSystem->Open(buffer));
+   machine->WriteRegister(2,id);
+
+   //return returnFromSystemCall();
 }
 
 void Nachos_Join(){

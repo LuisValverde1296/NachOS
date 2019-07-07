@@ -8,6 +8,8 @@
 #ifndef SYSTEM_H
 #define SYSTEM_H
 
+#define NUM_EXEC 32
+
 #include "copyright.h"
 #include "utility.h"
 #include "thread.h"
@@ -34,9 +36,16 @@ extern Timer *timer;				// the hardware alarm clock
 #include "machine.h"
 #include "nachostabla.h"
 #include "nachossemtabla.h"
+#include <synch.h>
+#include "bitmap.h"
+extern BitMap *memoryPagesMap;
+extern BitMap *execJoinSemMap;
 extern Machine* machine;	// user program memory and registers
 extern NachosOpenFilesTable* nachosTabla;
 extern NachosSemTable* nachosSemTabla;
+extern NachosSemTable* semJoin;
+extern bool joinable[NUM_EXEC];
+extern int semIds[NUM_EXEC];
 #endif
 
 #ifdef FILESYS_NEEDED 		// FILESYS or FILESYS_STUB 

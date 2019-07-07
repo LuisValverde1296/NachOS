@@ -1065,14 +1065,15 @@ exception.o: ../userprog/exception.cc /usr/include/stdc-predef.h \
  /usr/lib/gcc/x86_64-linux-gnu/7/include/stdarg.h \
  /usr/include/x86_64-linux-gnu/bits/stdio_lim.h \
  /usr/include/x86_64-linux-gnu/bits/sys_errlist.h /usr/include/string.h \
- /usr/include/strings.h ../filesys/openfile.h ../userprog/syscall.h \
- ../threads/synch.h ../threads/thread.h ../threads/utility.h \
- ../machine/machine.h ../machine/translate.h ../machine/disk.h \
- ../userprog/nachostabla.h ../userprog/nachossemtabla.h \
- ../userprog/addrspace.h ../filesys/filesys.h ../filesys/openfile.h \
- ../threads/list.h ../threads/system.h ../threads/scheduler.h \
- ../machine/interrupt.h ../threads/list.h ../machine/stats.h \
- ../machine/timer.h ../userprog/bitmap.h /usr/include/fcntl.h \
+ /usr/include/strings.h ../filesys/openfile.h \
+ ../userprog/nachossemtabla.h ../userprog/syscall.h ../threads/synch.h \
+ ../threads/thread.h ../threads/utility.h ../machine/machine.h \
+ ../machine/translate.h ../machine/disk.h ../userprog/nachostabla.h \
+ ../userprog/nachossemtabla.h ../userprog/addrspace.h \
+ ../filesys/filesys.h ../filesys/openfile.h ../threads/list.h \
+ ../threads/system.h ../threads/scheduler.h ../machine/interrupt.h \
+ ../threads/list.h ../machine/stats.h ../machine/timer.h \
+ ../userprog/bitmap.h /usr/include/fcntl.h \
  /usr/include/x86_64-linux-gnu/bits/fcntl.h \
  /usr/include/x86_64-linux-gnu/bits/fcntl-linux.h \
  /usr/include/x86_64-linux-gnu/bits/types/struct_iovec.h \

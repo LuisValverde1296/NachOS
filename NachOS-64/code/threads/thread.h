@@ -100,7 +100,7 @@ class Thread {
     void setStatus(ThreadStatus st) { status = st; }
     const char* getName() { return (name); }
     void Print() { printf("%s, ", name); }
-
+    int id;
   private:
     // some of the private data for this class is listed above
     
