@@ -61,27 +61,46 @@ AddrSpace::AddrSpace(int id) {
     this->executionId = id;
 }
 
-AddrSpace::AddrSpace(OpenFile *executable)
+AddrSpace::AddrSpace(OpenFile *exec)
 {
+    //-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*--*-*-*-*
+    executable = exec;
+    static int nSwaps = 0; //Número de swaps
+    sprintf(swapFileName, "swap%03d", ++nSwaps);
+
+    int f = open(swapFile, O_CREAT | O_RDWR, S_IRUSR | S_IWUSR); //Open con banderas de permiso
+    ftruncate(f, NumPhysPages*PageSize);
+    close(f);
+
+    SWAP = fileSystem->Open(swapFileName); //Abre el arch que está en Swap
+    SWAPMap = new BitMap(NumPhysPages);
+    //-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*--*-*-*-*
+
     NoffHeader noffH;
-    unsigned int i, size, textPages, dataPages,textOffSet;
+    unsigned int i, size, textPages, dataPages,textOffSet; // cambiar
 
     executable->ReadAt((char *)&noffH, sizeof(noffH), 0);
     if ((noffH.noffMagic != NOFFMAGIC) && (WordToHost(noffH.noffMagic) == NOFFMAGIC))
     	SwapHeader(&noffH);
     ASSERT(noffH.noffMagic == NOFFMAGIC);
 
+    NoffHeader noffH;
 // how big is address space?
     size = noffH.code.size + noffH.initData.size + noffH.uninitData.size 
-			+ UserStackSize;	// we need to increase the size
+			/*/+ UserStackSize*/;	// we need to increase the size
 						// to leave room for the stack
     numPages = divRoundUp(size, PageSize);
     numPages += divRoundUp(UserStackSize, PageSize);
     size = numPages * PageSize;
 
     textPages = divRoundDown(noffH.code.size, PageSize); //Without the offset of text
-    textOffSet = noffH.code.size - (textPages * PageSize);
-    dataPages = divRoundUp(noffH.code.size + textOffSet, PageSize);
+    textOffSet = noffH.code.size - (textPages * PageSize); // Parte del texto que no se ha contado
+    dataPages = divRoundUp(noffH.code.size + textOffSet, PageSize); // Aquí se empieza a contar
+    //-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*--*-*-*-*
+    dataOffSet = noffH.initData.size + textOffSet, PageSize);
+    stackPages = UserStackSize / PageSize;
+    //-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*--*-*-*-*
+
     ASSERT(numPages <= NumPhysPages);		// check we're not trying
 						// to run anything too big --
 						// at least until we have
@@ -89,39 +108,66 @@ AddrSpace::AddrSpace(OpenFile *executable)
 
     DEBUG('a', "Initializing address space, num pages %d, size %d\n", 
 					numPages, size);
-// first, set up the translation 
+    // first, set up the translation 
     pageTable = new TranslationEntry[numPages];
     for (i = 0; i < numPages; i++) {
-	pageTable[i].virtualPage = i;	// for now, virtual page # = phys page #
-	pageTable[i].physicalPage = memoryPagesMap->Find();
-	pageTable[i].valid = true;
-	pageTable[i].use = false;
-	pageTable[i].dirty = false;
-	pageTable[i].readOnly = false;  // if the code segment was entirely on 
+	    pageTable[i].virtualPage = i;	// for now, virtual page # = phys page #
+        //-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*--*-*-*-*
+#ifdef VM // de los labs
+        pageTable[i].valid = false; // estaba en tue
+#else
+        pageTable[i].valid = true;
+        pageTable[i].physicalPage = memoryPagesMap->Find();
+#endif
+	    pageTable[i].use = false;
+	    pageTable[i].dirty = false;
+	    pageTable[i].readOnly = false;  // if the code segment was entirely on 
 					// a separate page, we could set its 
 					// pages to be read-only
+        //-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*--*-*-*-*
     }
 // then, copy in the code and data segments into memory
+#ifndef VM
     unsigned int j = 0;
     for(; j < textPages; ++j){
         DEBUG('a', "Initializing code segment, at 0x%x, size %d\n", 
 			noffH.code.virtualAddr, noffH.code.size);
-        executable->ReadAt(machine->mainMemory + (pageTable[j].physicalPage*PageSize), PageSize, noffH.code.inFileAddr + j * PageSize);
+        //executable->ReadAt(machine->mainMemory + (pageTable[j].physicalPage*PageSize), PageSize, noffH.code.inFileAddr + j * PageSize);
+        executable->ReadAt(machine->mainMemory + (pageTable[j].physicalPage*PageSize), //
+            PageSize, noffH.code.inFileAddr + j * PageSize);
         pageTable[j].readOnly = true;
     }
     for(; j < textPages + dataPages; ++j){
         DEBUG('a', "Initializing data segment, at 0x%x, size %d\n", 
 			noffH.initData.virtualAddr, noffH.initData.size);
-        executable->ReadAt(machine->mainMemory + (pageTable[j].physicalPage*PageSize), PageSize, noffH.code.inFileAddr + j * PageSize); // TO read the offSet.
+
+        //executable->ReadAt(machine->mainMemory + (pageTable[j].physicalPage*PageSize), PageSize, noffH.code.inFileAddr + j * PageSize); // TO read the offSet.
+        executable->ReadAt(machine->mainMemory + (pageTable[j].physicalPage*PageSize),
+            PageSize, noffH.code.inFileAddr + j * PageSize); // TO read the offSet of text
     }
+#endif
     state = new int[NumTotalRegs + 4];
 // zero out the entire address space, to zero the unitialized data segment 
 // and the stack segment
 //    bzero(machine->mainMemory, size);
-
 }
 
 AddrSpace::AddrSpace(AddrSpace *fatherAddrSpaces) {
+
+    //-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*--*-*-*-*
+    executable = fatherAddrSpaces;
+    static int nSwaps = 0; //Número de swaps
+    sprintf(swapFileName, "swap%03d", ++nSwaps);
+
+    int f = open(swapFile, O_CREAT | O_RDWR, S_IRUSR | S_IWUSR); //Open con banderas de permiso
+    ftruncate(f, NumPhysPages*PageSize);
+    close(f);
+
+    SWAP = fileSystem->Open(swapFileName); //Abre el arch que está en Swap
+    SWAPMap = new BitMap(NumPhysPages);
+    //-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*--*-*-*-*
+
+
     ASSERT(memoryPagesMap->NumClear() >= 8);
     
     state = new int[NumTotalRegs + 4];
@@ -158,9 +204,13 @@ AddrSpace::AddrSpace(AddrSpace *fatherAddrSpaces) {
 AddrSpace::~AddrSpace()
 {
     for(unsigned int i = 0; i < numPages;++i){
-        memoryPagesMap->Clear(pageTable[i].physicalPage);  
+        if(pageTable[i].valid)
+            memoryPagesMap->Clear(pageTable[i].physicalPage);  
     }
-   delete pageTable;
+    remove(swapFileName);
+    delete pageTable;
+    delete pageTable;
+    delte executable;
 }
 
 //----------------------------------------------------------------------
@@ -204,7 +254,18 @@ AddrSpace::InitRegisters()
 //----------------------------------------------------------------------
 
 void AddrSpace::SaveState() 
-{}
+{
+#ifdef VM
+    int VPN = -1; // Se inicia en un número inválido
+    bool currentUseValue = false;
+    bool currentDirtyValue = false;
+
+    for (int i - 0; i < TBLSize; i++){
+        VPN = machine->tlb[i].virtualPage;
+        
+    }
+
+}
 
 //----------------------------------------------------------------------
 // AddrSpace::RestoreState
