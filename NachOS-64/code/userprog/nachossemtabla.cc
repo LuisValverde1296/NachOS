@@ -1,5 +1,6 @@
 #include "nachossemtabla.h"
 
+/*
 NachosSemTable::NachosSemTable() {          //Initialize
 	semaphores = new long [MAX_SEM];
 	semaphoreMap = new BitMap(MAX_SEM);
@@ -77,4 +78,31 @@ void NachosSemTable::print() {
             printf("%-12d : %-14ld",i, getSem(i));
         }
     }
+}
+*/
+
+NachosSemTable::NachosSemTable(){
+	semaphoresMap = new BitMap(32);
+}
+
+NachosSemTable::~NachosSemTable(){
+	delete semaphoresMap;
+}
+
+int NachosSemTable::Create(int val){
+	int id = semaphoresMap->Find();
+	ASSERT(id != -1);
+	semaphoresTable[id] = new Semaphore("Tabla",val); //TODO: Nombre del semaforo más especifico
+	return id;
+}
+int NachosSemTable::Destroy(int id){
+	ASSERT(semaphoresMap->Test(id));
+	semaphoresMap->Clear(id);
+	delete semaphoresTable[id];
+	return id;
+}
+
+Semaphore* NachosSemTable::GetSem(int id){
+	ASSERT(semaphoresMap->Test(id));
+	return semaphoresTable[id];
 }

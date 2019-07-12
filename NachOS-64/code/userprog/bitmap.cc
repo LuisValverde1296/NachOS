@@ -9,6 +9,7 @@
 #include "copyright.h"
 #include "bitmap.h"
 
+#include <iostream>
 //----------------------------------------------------------------------
 // BitMap::BitMap
 // 	Initialize a bitmap with "nitems" bits, so that every bit is clear.
@@ -20,6 +21,7 @@
 BitMap::BitMap(int nitems) 
 { 
     numBits = nitems;
+    //std::cout << numBits << std::endl;
     numWords = divRoundUp(numBits, BitsInWord);
     map = new unsigned int[numWords];
     for (int i = 0; i < numBits; i++) 
@@ -94,10 +96,11 @@ BitMap::Test(int which)
 int 
 BitMap::Find() 
 {
+    //std::cout << numBits << std::endl;
     for (int i = 0; i < numBits; i++)
 	if (!Test(i)) {
 	    Mark(i);
-	    return i;
+	    return i; 
 	}
     return -1;
 }
@@ -114,7 +117,8 @@ BitMap::NumClear()
     int count = 0;
 
     for (int i = 0; i < numBits; i++)
-	if (!Test(i)) count++;
+	    if (!Test(i)) count++;
+    
     return count;
 }
 

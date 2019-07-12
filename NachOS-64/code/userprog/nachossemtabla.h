@@ -1,6 +1,6 @@
 #ifndef NACHOS_SEM_TABLE_H
 #define NACHOS_SEM_TABLE_H
-
+/* 
 #include "bitmap.h"
 #include "syscall.h"
 #include "copyright.h"
@@ -31,5 +31,22 @@ class NachosSemTable {
     int usage;			// How many threads are using this table
 
 };
+*/
 
+#include <synch.h>
+#include "bitmap.h"
+#include "syscall.h"
+
+class NachosSemTable{
+public:
+	NachosSemTable();
+	~NachosSemTable();
+	int Create(int val);
+	int Destroy(int id);
+	Semaphore* GetSem(int id);
+
+private:
+	Semaphore* semaphoresTable[32];
+	BitMap* semaphoresMap;
+};
 #endif //NACHOS_SEM_TABLE_H

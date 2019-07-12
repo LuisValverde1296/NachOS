@@ -65,6 +65,11 @@ AddrSpace::AddrSpace(OpenFile *executable)
 {
     NoffHeader noffH;
     unsigned int i, size, textpages,dataPages,textoffSet;
+    memoryPagesMap = new BitMap(SIZE);
+    execJoinSemMap = new BitMap(SIZE);
+    nachosTabla = new NachosOpenFilesTable();
+    nachosSemTabla = new NachosSemTable();
+    semJoin = new NachosSemTable();
 
     executable->ReadAt((char *)&noffH, sizeof(noffH), 0);
     if ((noffH.noffMagic != NOFFMAGIC) && 
