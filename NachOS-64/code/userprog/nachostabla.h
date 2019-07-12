@@ -2,6 +2,11 @@
 #define NACHOS_TABLA_H
 
 #include "bitmap.h"
+#include "syscall.h"
+
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <fcntl.h>
 
 #define SIZE 256
 

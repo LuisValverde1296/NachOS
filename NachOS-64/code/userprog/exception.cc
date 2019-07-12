@@ -32,6 +32,8 @@
 #include <sys/stat.h>
 #include <sys/types.h>
 #include <unistd.h>
+#include <stdio.h>
+#include <iostream>
 
 //----------------------------------------------------------------------
 // ExceptionHandler
@@ -84,7 +86,6 @@ void Nachos_Exit(){
       tmp->V();
    }
    currentThread->Finish();
-   returnFromSystemCall();
 }
 
 void Nachos_Execute(void* filePath){
@@ -118,8 +119,6 @@ void Nachos_Exec(){
    t1->id = id;
    t1->Fork(Nachos_Execute, (void*)fileSystem->Open(buffer));
    machine->WriteRegister(2,id);
-
-   //return returnFromSystemCall();
 }
 
 void Nachos_Join(){
@@ -144,20 +143,15 @@ void Nachos_Create() {
    char* buffer = new char[SIZE];
    int actual = -1;
    int index = 0;
-   int result = -1;
-
+   
    while( actual != 0 ){
       machine->ReadMem(register_4, 1, &actual);
       buffer[index] = (char) actual;
       ++register_4;
       ++index;
    }
-   result = creat(buffer, 0766);
-   if(result != -1){
-      result = close(result);
-      ASSERT(result != -1);
-   }
-   returnFromSystemCall();
+   int unixHandle = open(buffer, O_CREAT | O_RDWR, S_IRUSR | S_IWUSR);
+   ASSERT(unixHandle != -1);
 }
 
 void Nachos_Open() {                    // System call 5
@@ -189,11 +183,10 @@ void Nachos_Open() {                    // System call 5
    // Verify for errors
 
    ASSERT(ID != -1); // test to see if the file was open, if not: breaks the program.
-   result = currentThread->nachosTabla->Open(ID);
+   result = nachosTabla->Open(ID);
    machine->WriteRegister(2, result);
    ++stats->numDiskReads; //Stats up to date.
    delete path;
-   returnFromSystemCall();		// Update the PC registers
 }       // Nachos_Open
 
 void Nachos_Read(){
@@ -225,8 +218,8 @@ void Nachos_Read(){
          error = true;
 			break;
 		default:
-         if(currentThread->nachosTabla->isOpened(id)){
-            unixHandle = currentThread->nachosTabla->getUnixHandle(id);
+         if(nachosTabla->isOpened(id)){
+            unixHandle = nachosTabla->getUnixHandle(id);
             result = read(unixHandle, buffer, size);
             ++stats->numDiskReads;
          }
@@ -242,7 +235,6 @@ void Nachos_Read(){
 
 	delete buffer;
 
-	returnFromSystemCall();
 }
 
 void Nachos_Write() {                   // System call 7
@@ -289,8 +281,8 @@ void Nachos_Write() {                   // System call 7
 			// Get the unix handle from our table for open files
 			// Do the write to the already opened Unix file
 			// Return the number of chars written to user, via r2
-         if(currentThread->nachosTabla->isOpened(id)){
-            int unixHandle = currentThread->nachosTabla->getUnixHandle(id);
+         if(nachosTabla->isOpened(id)){
+            int unixHandle = nachosTabla->getUnixHandle(id);
             result = write(unixHandle, (void*)buffer, size); //unix write(int fd, const void *buf, size_t count);
             ++stats->numDiskWrites;
          }
@@ -301,19 +293,17 @@ void Nachos_Write() {                   // System call 7
    delete buffer;
 	// Update simulation stats, see details in Statistics class in machine/stats.cc
    Console->V();
-   returnFromSystemCall();		// Update the PC registers
 
 }       // Nachos_Write
 
 void Nachos_Close() {
 	int register_4 = machine->ReadRegister(4);
    int result = -1;
-   if(currentThread->nachosTabla->isOpened(register_4)){
-      result = close(currentThread->nachosTabla->getUnixHandle(register_4));
+   if(nachosTabla->isOpened(register_4)){
+      result = close(nachosTabla->getUnixHandle(register_4));
       ASSERT(result != -1);
-      currentThread->nachosTabla->Close(register_4);
+      nachosTabla->Close(register_4);
    }
-   returnFromSystemCall();
 }
 
 void Nachos_Child_Fork(void* p){
@@ -340,13 +330,10 @@ void Nachos_Fork() {
 
 // The parameters for the new Thread are given in the register 4
    t1->Fork(Nachos_Child_Fork, (void*)machine->ReadRegister(4));
-
-   returnFromSystemCall();
 }
 
 void Nachos_Yield() {
 	currentThread->Yield();
-	returnFromSystemCall();
 }
 
 void Nachos_SemCreate() {
@@ -354,56 +341,50 @@ void Nachos_SemCreate() {
    int id = -1;
 
 	char* buffer = new char[SIZE];
-   sprintf(buffer, "Sem %d", currentThread->nachosSemTabla->findAvailable());
-	if((id = currentThread->nachosSemTabla->CreateSem((long)new Semaphore(buffer, register_4))) == -1){
+   sprintf(buffer, "Sem %d", nachosSemTabla->findAvailable());
+	if((id = nachosSemTabla->CreateSem((long)new Semaphore(buffer, register_4))) == -1){
       printf("Unable to create a new Semaphore\n");
    }
 	machine->WriteRegister(2, id);
-	returnFromSystemCall();
 }
 
 void Nachos_SemDestroy() {
    int register_4 = machine->ReadRegister(4);
    int result = -1;
-	if (currentThread->nachosSemTabla->exists(register_4)) {
-		result = currentThread->nachosSemTabla->DestroySem(register_4);
+	if (nachosSemTabla->exists(register_4)) {
+		result = nachosSemTabla->DestroySem(register_4);
 	}
 	machine->WriteRegister(2, result);
-	returnFromSystemCall();
 }
 
 void Nachos_SemSignal() {
    int register_4 = machine->ReadRegister(4);
    int result = -1;
    Semaphore* tmp;
-	if (currentThread->nachosSemTabla->exists(register_4)) {
-		tmp = (Semaphore*) currentThread->nachosSemTabla->getSem(register_4);
+	if (nachosSemTabla->exists(register_4)) {
+		tmp = (Semaphore*) nachosSemTabla->getSem(register_4);
 		tmp->V();
 		result = 0;
 	}
    machine->WriteRegister(2, result);
-	returnFromSystemCall();
 }
 
 void Nachos_SemWait() {
    int register_4 = machine->ReadRegister(4);
    int result = -1;
    Semaphore* tmp;
-	if (currentThread->nachosSemTabla->exists(register_4)) {
-		tmp = (Semaphore*) currentThread->nachosSemTabla->getSem(register_4);
+	if (nachosSemTabla->exists(register_4)) {
+		tmp = (Semaphore*) nachosSemTabla->getSem(register_4);
 		tmp->P();
 		result = 0;
 	} 
    machine->WriteRegister(2, result);
-	returnFromSystemCall();
 }
 
 void ExceptionHandler(ExceptionType which)
 {
     int type = machine->ReadRegister(2);
-
     switch ( which ) {
-
        case SyscallException:
           switch ( type ) {
              case SC_Halt:
@@ -456,6 +437,7 @@ void ExceptionHandler(ExceptionType which)
                 ASSERT(false);
                 break;
           }
+       returnFromSystemCall();
        break;
        default:
           printf( "Unexpected exception %d\n", which );

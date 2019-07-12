@@ -31,16 +31,19 @@ class AddrSpace {
 					// before jumping to user code
 
     void SaveState();			// Save/restore address space-specific
-    void RestoreState();		// info on a context switch 
-    void setExecutionId(int id);
-    int getExecutionId();
+    void RestoreState();		// info on a context switch
+
+    void setExecId(int newId);
+    int getExecId();
+
   private:
     TranslationEntry *pageTable;	// Assume linear page table translation
 					// for now!
+    int execId;
     unsigned int numPages;		// Number of pages in the virtual 
 					// address space
-    int executionId;
-    int* state;
+    int *state;
+
 };
 
 #endif // ADDRSPACE_H

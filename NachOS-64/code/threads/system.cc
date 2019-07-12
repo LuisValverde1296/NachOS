@@ -219,6 +219,11 @@ Cleanup()
     
 #ifdef USER_PROGRAM
     delete machine;
+    delete memoryPagesMap;
+    delete execJoinSemMap;
+    delete nachosTabla;
+    delete nachosSemTabla;
+    delete semJoin;
 #endif
 
 #ifdef FILESYS_NEEDED

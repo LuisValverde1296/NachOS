@@ -13,6 +13,9 @@
 #ifndef SYSCALLS_H
 #define SYSCALLS_H
 
+#include <unistd.h>                 // To use 'close' Unix SysCall
+#include <iostream>                 // using ofstream constructors.
+#include <fstream>
 #include "copyright.h"
 
 /* system call codes -- used by the stubs to tell the kernel which system call

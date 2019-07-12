@@ -186,8 +186,8 @@ Thread::Yield ()
     
     nextThread = scheduler->FindNextToRun();
     if (nextThread != NULL) {
-	scheduler->ReadyToRun(this);
-	scheduler->Run(nextThread);
+	    scheduler->ReadyToRun(this);
+	    scheduler->Run(nextThread);
     }
     interrupt->SetLevel(oldLevel);
 }
@@ -223,7 +223,7 @@ Thread::Sleep ()
 
     status = BLOCKED;
     while ((nextThread = scheduler->FindNextToRun()) == NULL) {
-	interrupt->Idle();	// no one to run, wait for an interrupt
+	    interrupt->Idle();	// no one to run, wait for an interrupt
     }
         
     scheduler->Run(nextThread); // returns when we've been signalled
